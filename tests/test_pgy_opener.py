@@ -160,6 +160,25 @@ class PgyOpenerTests(unittest.TestCase):
         self.assertEqual(calls[-1][0], "tab")
         self.assertIn("/user12?", calls[-1][1])
 
+    def test_open_creator_tabs_uses_requested_window_size(self):
+        creators = [
+            Creator(row_number=i + 2, name=f"博主{i + 1}", profile_link="", profile_user_id=f"user{i + 1}")
+            for i in range(8)
+        ]
+        calls = []
+        opener = BrowserOpener(
+            open_blank_window=lambda: None,
+            open_url_in_current_tab=lambda url: None,
+            open_url_in_new_tab=lambda url: calls.append("tab"),
+            open_url_in_new_window=lambda url: calls.append("window"),
+            name="测试浏览器",
+        )
+
+        with patch("pgy_opener.time.sleep"):
+            open_creator_tabs(creators, delay=0, window_size=3, browser_opener=opener)
+
+        self.assertEqual(calls, ["window", "tab", "tab", "window", "tab", "tab", "window", "tab"])
+
     def test_open_creator_tabs_sends_messages_to_progress_callback(self):
         creators = [Creator(row_number=2, name="肥肥泡芙", profile_link="", profile_user_id="user1")]
         messages = []

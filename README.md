@@ -28,7 +28,7 @@ Windows：
 1. 在 GitHub Releases 下载 `pgy-blogger-opener-windows.exe`。
 2. 双击 `.exe` 即可打开，不需要安装 Python。
 3. 程序会优先寻找带有小红书登录 Cookie 的 Chrome 用户配置，并使用该配置打开蒲公英页面。
-4. 第 1、11、21 个链接会通过 Chrome 的 `--new-window` 参数强制创建独立窗口。
+4. 程序按照「每几个新开一个窗口」的输入值动态分组，每组第一个链接会通过 Chrome 的 `--new-window` 参数创建独立窗口。
 5. 如果 Windows Defender 弹出未知发布者提示，选择「更多信息」后确认运行。
 
 源码运行方式：
@@ -74,7 +74,7 @@ python3 pgy_opener.py "/path/to/博主表.xlsx" --start 1 --count 10
 # 打开第 11 到第 20 个有效博主
 python3 pgy_opener.py "/path/to/博主表.xlsx" --start 11 --count 10
 
-# 打开 30 个；第 1、11、21 个会分别新开窗口
+# 打开 30 个，每 10 个一组；第 1、11、21 个会分别新开窗口
 python3 pgy_opener.py "/path/to/博主表.xlsx" --start 1 --count 30
 
 # 改成每 20 个链接新开一个窗口
