@@ -1,0 +1,59 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests
+
+      - name: Build single-file EXE
+        shell: pwsh
+        run: |
+          python make_windows_exe.py
+
+      - name: Copy release asset
+        shell: pwsh
+        run: |
+          Copy-Item "build\windows-exe\dist\蒲公英博主打开工具.exe" "pgy-blogger-opener-windows.exe"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pgy-blogger-opener-windows
+          path: pgy-blogger-opener-windows.exe
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" "pgy-blogger-opener-windows.exe" --title "蒲公英博主打开工具 ${{ github.ref_name }}" --generate-notes
