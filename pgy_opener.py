@@ -21,7 +21,7 @@ from urllib.request import Request, urlopen
 from openpyxl import load_workbook
 
 PGY_DETAIL_PREFIX = "https://pgy.xiaohongshu.com/solar/pre-trade/blogger-detail"
-TOOL_VERSION = "2026-06-15.12"
+TOOL_VERSION = "2026-06-15.13"
 
 
 @dataclass

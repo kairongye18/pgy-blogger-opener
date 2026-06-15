@@ -54,8 +54,8 @@ def create_windows_exe(project_dir: str | Path) -> Path:
 
 
 def main() -> int:
-    exe_path = create_windows_exe(Path(__file__).resolve().parent)
-    print(f"已生成：{exe_path}")
+    create_windows_exe(Path(__file__).resolve().parent)
+    print("Windows EXE build completed.")
     return 0
 
 
