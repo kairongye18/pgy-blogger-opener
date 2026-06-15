@@ -21,7 +21,7 @@ from urllib.request import Request, urlopen
 from openpyxl import load_workbook
 
 PGY_DETAIL_PREFIX = "https://pgy.xiaohongshu.com/solar/pre-trade/blogger-detail"
-TOOL_VERSION = "2026-06-15.11"
+TOOL_VERSION = "2026-06-15.12"
 
 
 @dataclass
@@ -129,10 +129,15 @@ def load_creators(
     try:
         headers = ["" if value is None else str(value).strip() for value in next(rows)]
     except StopIteration as exc:
+        workbook.close()
         raise ValueError("Excel 文件为空") from exc
 
-    name_index = find_column(headers, ("小红书昵称", "昵称"))
-    link_index = find_column(headers, ("主页链接", "主页"))
+    try:
+        name_index = find_column(headers, ("小红书昵称", "昵称"))
+        link_index = find_column(headers, ("主页链接", "主页"))
+    except Exception:
+        workbook.close()
+        raise
 
     creators: list[Creator] = []
     valid_creator_number = 0
@@ -174,6 +179,7 @@ def load_creators(
             creator.error = f"主页链接中未找到小红书 userId；最终链接：{resolved_link}"
         creators.append(creator)
 
+    workbook.close()
     return creators
 
 
@@ -351,11 +357,14 @@ def _profile_has_xhs_cookies(profile_dir: Path) -> bool:
         cookie_copy = Path(tmp) / "Cookies"
         try:
             shutil.copy2(cookie_path, cookie_copy)
-            with sqlite3.connect(cookie_copy) as connection:
+            connection = sqlite3.connect(cookie_copy)
+            try:
                 row = connection.execute(
                     "select 1 from cookies where host_key like ? or host_key like ? limit 1",
                     ("%xiaohongshu.com", "%xhslink.com"),
                 ).fetchone()
+            finally:
+                connection.close()
         except Exception:
             return False
     return row is not None
