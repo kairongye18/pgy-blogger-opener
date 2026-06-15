@@ -27,7 +27,9 @@ Windows：
 
 1. 在 GitHub Releases 下载 `pgy-blogger-opener-windows.exe`。
 2. 双击 `.exe` 即可打开，不需要安装 Python。
-3. 如果 Windows Defender 弹出未知发布者提示，选择「更多信息」后确认运行。
+3. 程序会优先寻找带有小红书登录 Cookie 的 Chrome 用户配置，并使用该配置打开蒲公英页面。
+4. 第 1、11、21 个链接会通过 Chrome 的 `--new-window` 参数强制创建独立窗口。
+5. 如果 Windows Defender 弹出未知发布者提示，选择「更多信息」后确认运行。
 
 源码运行方式：
 

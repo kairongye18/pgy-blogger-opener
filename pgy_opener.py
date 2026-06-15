@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import plistlib
 import shutil
 import sqlite3
@@ -21,7 +22,7 @@ from urllib.request import Request, urlopen
 from openpyxl import load_workbook
 
 PGY_DETAIL_PREFIX = "https://pgy.xiaohongshu.com/solar/pre-trade/blogger-detail"
-TOOL_VERSION = "2026-06-15.13"
+TOOL_VERSION = "2026-06-15.14"
 
 
 @dataclass
@@ -236,6 +237,11 @@ def create_browser_opener() -> BrowserOpener:
             open_url_in_new_window=lambda url: webbrowser.open(url, new=1),
             name="默认浏览器",
         )
+    if sys.platform == "win32":
+        chrome_executable = windows_chrome_executable()
+        if chrome_executable:
+            chrome_profile = find_chrome_profile_with_xhs_cookies(_windows_chrome_user_data_dir())
+            return _create_windows_chrome_opener(chrome_executable, chrome_profile)
     return BrowserOpener(
         open_blank_window=lambda: webbrowser.open("about:blank", new=1),
         open_url_in_current_tab=lambda url: webbrowser.open(url, new=0),
@@ -271,6 +277,43 @@ def _create_macos_browser_opener(browser_name: str) -> BrowserOpener:
             else (lambda url: _open_url_in_new_window_chromium_macos(browser_name, url))
         ),
         name=f"{browser_name}（{chrome_profile}）" if chrome_profile else browser_name,
+    )
+
+
+def windows_chrome_executable(environ: dict[str, str] | None = None) -> Path | None:
+    environment = environ if environ is not None else os.environ
+    candidates = [
+        Path(environment.get("LOCALAPPDATA", "")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+        Path(environment.get("PROGRAMFILES", "")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+        Path(environment.get("PROGRAMFILES(X86)", "")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _windows_chrome_user_data_dir(environ: dict[str, str] | None = None) -> Path:
+    environment = environ if environ is not None else os.environ
+    return Path(environment.get("LOCALAPPDATA", "")) / "Google" / "Chrome" / "User Data"
+
+
+def _create_windows_chrome_opener(chrome_executable: Path, profile_name: str | None) -> BrowserOpener:
+    def open_chrome(url: str, *, new_window: bool) -> None:
+        command = [str(chrome_executable)]
+        if profile_name:
+            command.append(f"--profile-directory={profile_name}")
+        if new_window:
+            command.append("--new-window")
+        command.append(url)
+        subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    return BrowserOpener(
+        open_blank_window=lambda: open_chrome("about:blank", new_window=True),
+        open_url_in_current_tab=lambda url: open_chrome(url, new_window=False),
+        open_url_in_new_tab=lambda url: open_chrome(url, new_window=False),
+        open_url_in_new_window=lambda url: open_chrome(url, new_window=True),
+        name=f"Google Chrome（{profile_name}）" if profile_name else "Google Chrome",
     )
 
 

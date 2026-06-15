@@ -25,6 +25,7 @@ from pgy_opener import (  # noqa: E402
     open_creator_tabs,
     resolve_short_link,
     select_batch,
+    windows_chrome_executable,
 )
 
 
@@ -253,6 +254,44 @@ class PgyOpenerTests(unittest.TestCase):
         self.assertIn("--profile-directory=Profile 1", command)
         self.assertIn("--new-window", command)
         self.assertEqual(command[-1], "https://pgy.xiaohongshu.com/solar/pre-trade/blogger-detail/user1")
+
+    def test_windows_chrome_executable_finds_per_user_install(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            local_app_data = Path(tmp)
+            chrome = local_app_data / "Google" / "Chrome" / "Application" / "chrome.exe"
+            chrome.parent.mkdir(parents=True)
+            chrome.write_bytes(b"MZ")
+
+            executable = windows_chrome_executable({"LOCALAPPDATA": str(local_app_data)})
+
+        self.assertEqual(executable, chrome)
+
+    def test_windows_browser_opener_uses_logged_in_chrome_profile_and_new_window_flag(self):
+        chrome = Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe")
+        detail_url = "https://pgy.xiaohongshu.com/solar/pre-trade/blogger-detail/user1"
+
+        with (
+            patch("pgy_opener.sys.platform", "win32"),
+            patch("pgy_opener.windows_chrome_executable", return_value=chrome),
+            patch("pgy_opener.find_chrome_profile_with_xhs_cookies", return_value="Profile 2"),
+            patch("pgy_opener.subprocess.Popen") as popen,
+        ):
+            opener = __import__("pgy_opener").create_browser_opener()
+            opener.open_url_in_new_window(detail_url)
+            opener.open_url_in_new_tab(detail_url)
+
+        new_window_command = popen.call_args_list[0].args[0]
+        new_tab_command = popen.call_args_list[1].args[0]
+        self.assertEqual(new_window_command[0], str(chrome))
+        self.assertIn("--profile-directory=Profile 2", new_window_command)
+        self.assertIn("--new-window", new_window_command)
+        self.assertEqual(new_window_command[-1], detail_url)
+        self.assertEqual(new_tab_command[0], str(chrome))
+        self.assertIn("--profile-directory=Profile 2", new_tab_command)
+        self.assertNotIn("--new-window", new_tab_command)
+        self.assertEqual(opener.name, "Google Chrome（Profile 2）")
 
     def test_select_batch_is_one_based_and_limited(self):
         import tempfile
