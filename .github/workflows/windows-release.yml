@@ -39,6 +39,17 @@ jobs:
         run: |
           python make_windows_exe.py
 
+      - name: Smoke test packaged EXE
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path "build\windows-exe\dist\蒲公英博主打开工具.exe"
+          $process = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 5
+          if ($process.HasExited) {
+            throw "Packaged EXE exited during startup with code $($process.ExitCode)."
+          }
+          taskkill /PID $process.Id /T /F
+
       - name: Copy release asset
         shell: pwsh
         run: |
